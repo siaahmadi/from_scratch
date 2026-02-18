@@ -1,29 +1,18 @@
-from sklearn.datasets import fetch_openml
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder
-from sklearn.pipeline import make_pipeline
-from numpy import atleast_2d
+import numpy as np
 
+from sklearn.datasets import fetch_openml # pyright: ignore[reportMissingModuleSource]
+from sklearn.preprocessing import OneHotEncoder, StandardScaler, MinMaxScaler # pyright: ignore[reportMissingModuleSource]
+from sklearn.pipeline import make_pipeline # pyright: ignore[reportMissingModuleSource]
+
+### Prepare data
 mnist = fetch_openml('mnist_784', as_frame=False)
 
+scaler = make_pipeline(MinMaxScaler(feature_range=(-.25, .25)), StandardScaler(with_std=False))
+onehot = OneHotEncoder(categories=[np.arange(10)], sparse_output=False)
 
 X = mnist['data']
-y = atleast_2d(mnist['target'].astype(int)).T
+y = onehot.fit_transform(mnist['target'].astype(int)[:, np.newaxis])
 
-scaler = make_pipeline(MinMaxScaler((-.1, .1)), StandardScaler(with_std=False))
-onehot = OneHotEncoder(categories=[range(10)], sparse_output=False)
-
-N_train = 50_000
-N_valid = 10_000
-N_test  = 10_000
-
-X_train = X[:N_train]
-X_valid = X[N_train:N_train+N_valid]
-X_test  = X[-N_test:]
-
-X_train = scaler.fit_transform(X_train.reshape((-1, 1))).reshape((N_train, -1))
-X_valid = scaler.transform(X_valid.reshape((-1, 1))).reshape((N_valid, -1))
-X_test  = scaler.transform(X_test.reshape((-1, 1))).reshape((N_test, -1))
-
-y_train = onehot.fit_transform(y[:N_train])
-y_valid = onehot.fit_transform(y[N_train:N_train+N_valid])
-y_test  = onehot.fit_transform(y[-N_test:])
+X_train, y_train = scaler.fit_transform(X[:50_000])  , y[:50_000]
+X_valid, y_valid = scaler.transform(X[50_000:60_000]), y[50_000:60_000]
+X_test,  y_test  = scaler.transform(X[60_000:])      , y[60_000:]

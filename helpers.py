@@ -5,16 +5,24 @@ def softmax(x):
     exp = np.exp(x)
     return exp / exp.sum(axis=1, keepdims=True)
 
-def cross_entropy_loss(q, p):
+def cross_entropy_loss(logits, p):
+    logits -= np.max(logits, axis=1, keepdims=True)
+
     correct_class = np.argmax(p, axis=1)
-    row = np.arange(q.shape[0])
-    return np.log(np.exp(q).sum(axis=1)) - q[row, correct_class]
+    row = np.arange(logits.shape[0])
+    return np.log(np.exp(logits).sum(axis=1)) - logits[row, correct_class]
 
 def cross_entropy_gradient(q, p):
     return q - p
 
-def accuracy(logits, true_class):
-    probs = np.argmax(softmax(logits), axis=1)
-    true = np.argmax(true_class, axis=1)
+def loss_and_accuracy(model, X, true_label):
+
+    logits = model.forward(X)
+
+    loss = cross_entropy_loss(logits, true_label).mean()
+
+    predicted = np.argmax(softmax(logits), axis=1)
+    true = np.argmax(true_label, axis=1)
+    accuracy = np.mean(predicted == true)
     
-    return np.mean(probs == true)
+    return loss, accuracy

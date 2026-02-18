@@ -1,6 +1,6 @@
 # Two-Layer MLP from Scratch
 
-A minimal implementation of a two-layer neural network (multi-layer perceptron) built from scratch using only NumPy (no deep learning frameworks)
+A minimal implementation of a two-layer neural network (multi-layer perceptron) built from scratch using only NumPy (no deep learning frameworks).
 
 The network uses ReLU activation with softmax output and cross-entropy loss. The weights are initialized using the Kaiming initialization. The backpropagation and gradient computation are implemented manually. A vanilla SGD optimizer (with learning rate decay) is build into the model class.
 
@@ -21,7 +21,7 @@ Set hyperparameters and run training in `train.py`.
 ## Architecture
 
 **Input:** 784 (28×28 MNIST images)  
-**Hidden Layer:** 128 units with ReLU activation  
+**Hidden Layer:** 256 units with ReLU activation  
 **Output:** 10 classes with softmax
 
 ## Usage
@@ -30,25 +30,11 @@ Set hyperparameters and run training in `train.py`.
 python train.py
 ```
 
-**Hyperparameters** (in `train.py`):
-```python
-{
-    'input_size': 784,
-    'hidden_size': 256,
-    'output_size': 10,
-    'learning_rate': 0.1,
-    'lr_decay': 0.99,
-    'n_epochs': 20,
-    'batch_size': 32,
-}
-```
-
 ## Results
-After 20 epochs of training:
 
-- **Training accuracy:** ~97.7%
-- **Validation accuracy:** ~97.4%
-- **Test accuracy:** ~97.2%
+- **Training accuracy:** ~98.8% (after 10 epochs), ~~99.7% (after 20 epochs)
+- **Validation accuracy:** ~97.6% (after 10 epochs), ~~98.0% (after 20 epochs)
+- **Test accuracy:** ~97.9% (after 20 epochs)
 
 
 ## Dependencies
