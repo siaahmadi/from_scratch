@@ -32,9 +32,9 @@ python train.py
 
 ## Results
 
-- **Training accuracy:** ~98.8% (after 10 epochs), ~~99.7% (after 20 epochs)
+- **Training accuracy:** ~98.9% (after 10 epochs), ~~99.7% (after 20 epochs)
 - **Validation accuracy:** ~97.6% (after 10 epochs), ~~98.0% (after 20 epochs)
-- **Test accuracy:** ~97.9% (after 20 epochs)
+- **Test accuracy:** ~97.5% (after 10 epochs), ~97.9% (after 20 epochs)
 
 
 ## Dependencies
