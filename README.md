@@ -4,16 +4,16 @@ A minimal implementation of a two-layer neural network (multi-layer perceptron) 
 
 The network uses ReLU activation with softmax output and cross-entropy loss. The weights are initialized using the Kaiming initialization. The backpropagation and gradient computation are implemented manually. A vanilla SGD optimizer (with learning rate decay) is build into the model class.
 
-See `from_scratch_2layer_mlp.pdf` for complete mathematical derivations.
+See `derivations.pdf` for complete mathematical derivations.
 
 ## Structure
 
 ```
-├── two_layer_nn.py          # Neural network class with forward/backward pass
-├── helpers.py               # Softmax, cross-entropy, accuracy functions
-├── mnist_data.py            # MNIST data loading and preprocessing
-├── train.py                 # Training loop
-└── from_scratch_2layer_mlp.pdf  # Mathematical derivations
+├── two_layer_nn.py  # Neural network class with forward/backward pass
+├── helpers.py       # Softmax, cross-entropy, accuracy functions
+├── mnist_data.py    # MNIST data loading and preprocessing
+├── train.py         # Training loop
+└── derivations.pdf  # Mathematical derivations
 ```
 
 ## Architecture
