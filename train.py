@@ -8,12 +8,13 @@ from helpers import cross_entropy_loss, cross_entropy_gradient, accuracy
 hyperparam = {
     'dtype': np.float64,
     'input_size': X_train.shape[1],
-    'hidden_size': 128,
+    'hidden_size': 256,
     'output_size': y_train.shape[1],
-    'learning_rate': 10e-2,
+    'learning_rate': 1e-1,
     'lr_decay': 0.99,
-    'n_epochs': 10,
+    'n_epochs': 20,
     'batch_size': 32,
+    'random_seed': 0,
 }
 
 model = TwoLayerMLP(
@@ -22,6 +23,7 @@ model = TwoLayerMLP(
     hyperparam['output_size'],
     hyperparam['learning_rate'],
     dtype=hyperparam['dtype'],
+    seed=hyperparam['random_seed'],
 )
 
 X_train = X_train.astype(hyperparam['dtype'])
@@ -46,22 +48,30 @@ for epoch in range(1, 1 + hyperparam['n_epochs']):
 
         if batch % 100 == 0:
             logits = model.forward(X_train)
-            loss = cross_entropy_loss(logits, y_train)
+            loss = cross_entropy_loss(logits, y_train).mean()
             accuracy_train = accuracy(logits, y_train)
 
             logits_valid = model.forward(X_valid)
-            loss_valid = cross_entropy_loss(logits_valid, y_valid)
+            loss_valid = cross_entropy_loss(logits_valid, y_valid).mean()
             accuracy_valid = accuracy(logits_valid, y_valid)
 
-            print(f"Epoch {epoch}; batch {1 + batch}, train loss = {loss.mean():.3f} ({accuracy_train*100:.1f}%), valid loss = {loss_valid.mean():.3f} ({accuracy_valid*100:.1f}%)")
+            print(f"Epoch {epoch:>2}; batch {1 + batch:>4}, train loss = {loss:.3f} ({accuracy_train*100:.1f}%), valid loss = {loss_valid:.3f} ({accuracy_valid*100:.1f}%)")
 
     model.lr *= hyperparam['lr_decay']
 
 
 logits_valid = model.forward(X_valid)
-loss_valid = cross_entropy_loss(logits_valid, y_valid)
+loss_valid = cross_entropy_loss(logits_valid, y_valid).mean()
 accuracy_valid = accuracy(logits_valid, y_valid)
 
 print("Training done.")
-print(f"Accuracy on validation set: {accuracy_valid*100:.1}%")
+print(f"Accuracy on validation set: {accuracy_valid*100:.1f}%")
 print(f"Loss on validation set: {loss_valid:.4f}")
+
+logits_test = model.forward(X_test)
+loss_test = cross_entropy_loss(logits_test, y_test).mean()
+accuracy_test = accuracy(logits_test, y_test)
+
+print()
+print(f"Accuracy on test set: {accuracy_test*100:.1f}%")
+print(f"Loss on test set: {loss_test:.4f}")

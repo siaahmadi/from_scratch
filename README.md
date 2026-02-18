@@ -6,6 +6,8 @@ The network uses ReLU activation with softmax output and cross-entropy loss. The
 
 See `derivations.pdf` for complete mathematical derivations.
 
+Set hyperparameters and run training in `train.py`.
+
 ## Structure
 
 ```
@@ -32,20 +34,21 @@ python train.py
 ```python
 {
     'input_size': 784,
-    'hidden_size': 128,
+    'hidden_size': 256,
     'output_size': 10,
     'learning_rate': 0.1,
     'lr_decay': 0.99,
-    'n_epochs': 10,
+    'n_epochs': 20,
     'batch_size': 32,
 }
 ```
 
 ## Results
+After 20 epochs of training:
 
-- **Training accuracy:** ~96%
-- **Validation accuracy:** ~97%
-- **Test accuracy:** ~97%
+- **Training accuracy:** ~97.7%
+- **Validation accuracy:** ~97.4%
+- **Test accuracy:** ~97.2%
 
 
 ## Dependencies

@@ -2,12 +2,15 @@ import numpy as np
 import warnings
 
 class TwoLayerMLP:
-    def __init__(self, d_in, d_h, d_out, learning_rate, dtype=np.float32):
+    def __init__(self, d_in, d_h, d_out, learning_rate, dtype=np.float32, seed=None):
+
         kaiming_factor = lambda d_in: np.sqrt(2. / d_in)
 
-        self.W1 = (np.random.standard_normal((d_in, d_h)) * kaiming_factor(d_in)).astype(dtype)
+        rng = np.random.default_rng(seed=seed)
+
+        self.W1 = (rng.standard_normal((d_in, d_h)) * kaiming_factor(d_in)).astype(dtype)
         self.b1 = np.zeros((1, d_h), dtype=dtype)
-        self.W2 = (np.random.standard_normal((d_h, d_out)) * kaiming_factor(d_h)).astype(dtype)
+        self.W2 = (rng.standard_normal((d_h, d_out)) * kaiming_factor(d_h)).astype(dtype)
         self.b2 = np.zeros((1, d_out), dtype=dtype)
 
         self.lr = learning_rate

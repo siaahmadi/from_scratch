@@ -3,7 +3,7 @@ import numpy as np
 def softmax(x):
     x -= np.max(x, axis=1, keepdims=True)
     exp = np.exp(x)
-    return exp / exp.sum(keepdims=True)
+    return exp / exp.sum(axis=1, keepdims=True)
 
 def cross_entropy_loss(q, p):
     correct_class = np.argmax(p, axis=1)
