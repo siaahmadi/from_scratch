@@ -17,7 +17,7 @@ def cross_entropy_gradient(q, p):
 
 def loss_and_accuracy(model, X, true_label):
 
-    logits = model.forward(X)
+    logits = model(X)
 
     loss = cross_entropy_loss(logits, true_label).mean()
 

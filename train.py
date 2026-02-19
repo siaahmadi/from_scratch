@@ -43,7 +43,7 @@ for epoch in range(1, 1 + hyperparam['n_epochs']):
         X_batch = X_train[batch * hyperparam['batch_size'] : (1 + batch) * hyperparam['batch_size']]
         y_batch = y_train[batch * hyperparam['batch_size'] : (1 + batch) * hyperparam['batch_size']]
 
-        logits = model.forward(X_batch)
+        logits = model(X_batch)
         q = softmax(logits)
         gradient = cross_entropy_gradient(q, y_batch)
         model.backward(gradient)

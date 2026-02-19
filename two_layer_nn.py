@@ -69,6 +69,9 @@ class TwoLayerMLP:
             self._grad['L_b1'] = np.sum(self._grad['L_b1'],
                                         axis=0, keepdims=True)            # 1 x H
 
+    def __call__(self, *args, **kwds):
+        return self.forward(*args, **kwds)
+
     def step(self):
         self.W1 += - self._grad['L_W1'] * self.lr
         self.b1 += - self._grad['L_b1'] * self.lr
