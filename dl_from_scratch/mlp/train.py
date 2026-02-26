@@ -2,8 +2,8 @@ import numpy as np
 import copy
 
 from two_layer_nn import TwoLayerMLP
-from mnist_data import X_train, y_train, X_valid, y_valid, X_test, y_test
-from helpers import softmax, cross_entropy_gradient, loss_and_accuracy
+from dl_from_scratch.utils.mnist_data import X_train, y_train, X_valid, y_valid, X_test, y_test
+from dl_from_scratch.utils.helpers import softmax, cross_entropy_gradient, loss_and_accuracy
 
 
 hyperparam = {
