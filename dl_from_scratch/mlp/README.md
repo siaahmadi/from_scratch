@@ -12,10 +12,15 @@ Set hyperparameters and run training in `train.py`.
 
 ```
 ├── two_layer_nn.py  # Neural network class with forward/backward pass
-├── helpers.py       # Softmax, cross-entropy, accuracy functions
-├── mnist_data.py    # MNIST data loading and preprocessing
 ├── train.py         # Training loop
 └── derivations.pdf  # Mathematical derivations
+```
+
+The following are in [utils](../utils/):
+
+```
+├── helpers.py       # Softmax, cross-entropy, accuracy functions
+├── mnist_data.py    # MNIST data loading and preprocessing
 ```
 
 ## Architecture
