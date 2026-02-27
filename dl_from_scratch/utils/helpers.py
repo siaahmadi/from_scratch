@@ -1,17 +1,27 @@
 import numpy as np
 
-def softmax(x, axis=None):
+def softmax(x, axis=None, upstream_grad=None):
     x -= np.max(x, axis=axis, keepdims=True)
     exp_x = np.exp(x)
     sum_exp_x = np.sum(exp_x, axis=axis, keepdims=True)
     sum_exp_x[sum_exp_x==0] = 1 # avoid div-by-zero
-    return exp_x / sum_exp_x
+    p = exp_x / sum_exp_x # (b, h, L_q, L_k)
 
-def masked_softmax(x, mask, axis=None):
+    if upstream_grad is None: # form jacobian
+        pT = np.moveaxis(p, -1, -2)
+        p_diag = np.expand_dims(p, len(p.shape)) * np.eye(p.shape[-1])
+        grad = p_diag - pT @ p
+    else: # no jacobian needed; upstream_gradient of shape (b, h, L_q, L_k)
+        g_dot_p = np.vecdot(upstream_grad, p)[..., np.newaxis]  # (b, h, L_q, 1)
+        grad = (upstream_grad - g_dot_p) * p # (b, h, L_q, L_k) * [(b, h, L_q, L_k) - (b, h, L_q, 1)]
+
+    return p, grad
+
+def masked_softmax(x, mask, axis=None, upstream_grad=None):
     if mask is not None:
         mask = mask.astype(bool)
         x[mask] = -np.inf
-    return softmax(x, axis=axis)
+    return softmax(x, axis=axis, upstream_grad=upstream_grad)
 
 def cross_entropy_loss(logits, p):
     logits -= np.max(logits, axis=1, keepdims=True)
