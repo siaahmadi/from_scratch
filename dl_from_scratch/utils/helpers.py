@@ -101,9 +101,10 @@ if __name__ == "__main__":
 
     print(y)
 
-    G = np.ones_like(x)
-    smx, smx_grad = softmax(x, axis=-1, compute_grad=True, upstream_grad=None)
+    G = np.ones_like(x) # or None
+    smx, smx_grad = softmax(x, axis=-1, compute_grad=True, upstream_grad=G)
     numeric_grad = gradient_check(softmax, x, func_output_shape=x.shape[-1:], axis=-1)
+    numeric_grad = numeric_grad if G is None else np.squeeze(np.expand_dims(G, -2) @ numeric_grad)
     print(f"Gradient check pass? {np.allclose(numeric_grad, smx_grad, rtol=1e-8)}")
     print()
 
