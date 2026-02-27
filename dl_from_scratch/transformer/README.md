@@ -17,16 +17,40 @@ I've had to read [the main Transformer paper](https://doi.org/10.48550/arXiv.170
 
 The figures in the Transformer paper are really confusing to me. I think just because they are technically "correct" it doesn't mean they communicate the ideas well. For example, there is no figure that puts together the entire attention mechanism end-to-end in a simplified way. Here's my attempt at doing so:
 
-![End-to-end attention schematic for a single head](attention_layout1.png "Attention mechanism, end-to-end")
+<center><img src="attention_layout1.png" alt="End-to-end attention schematic for a single head" title="Attention mechanism, end-to-end" width="800"/></center>
+
+This is the original paper's description of the transformer self-attention. Note that it's *self-attention* not *cross-attention* because the inputs are all the same (the "self" is the input giving rise to $K$ and $V$). This schematic is meant to illustrate a simplified picture and show you how the different matrix sizes match up. The boxes are sized carefully to match the matrix product dimension rules. For each matrix multiplication $C=AB$ the matrix $A_{m\times p}$ is situation to the left, matrix $B_{p\times n}$ is situated to the top and $C_{m\times n}$ is placed at the center. If you think of these boxes in 3D, we're "lifting up" $A$ and $B and requiring that their heights $p$ be the same. Of course the length $m$ and widht $n$ can vary arbitrarily.
+
+Nvidia has a really intuitive illustration of this to demonstrate how their tensor cores work:
+
+
+<center>
+<div style="width: 650px; overflow: hidden;">
+  <img src="https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tensorcore/nvidia-tensor-cores-og-social-1200x630-r1.jpg" 
+       style="width: 1200px; max-width: none; height: auto; display: block;"
+       title="Intuititive visualization of matrix multiplication by Nvidia"
+       alt="Matrix multiplication"
+       >
+</div>
+</center>
+
+(Image displayed directly from the source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tensorcore/nvidia-tensor-cores-og-social-1200x630-r1.jpg)
+
+Here, the cyan matrix is $A$, the purple is $B$, and the results $C$ is in green. The gray 3D strucutre in the middle is the result of the multplications before the sumation (recall $C_{ij}=\sum_kA_{ik}B_{kj}$, so each vertical column of the gray structure is indexed by $k$ and comes from the product of the corresponding row $i$ in $A$ and column $j$ in $B$). My schematic is this picture viewed from above, and with the cyan and purple matrices laid flat.
 
 Here's the same schematic, rearranged, in case you find it easier to comprehend this way:
 
-![End-to-end attention schematic for a single head](attention_layout2.png "Attention mechanism, end-to-end (alternative layout)")
+<center><img src="attention_layout2.png" alt="End-to-end attention schematic for a single head" title="Attention mechanism, end-to-end (alternative layout)" width="600"/></center>
 
 But if you're really used to neural networks being represented as multi-layer perceptrons, then the following might be the best representation for you. This simultaneously shows a) the whole attention mechanism end to end, b) the context-dependent nature of attention, which is reminiscient of meta-learning, and c) that the key `K` and value `V` have a special meaning in attention (hence, KV caching, why `K` and `V` can come from an encoder layer, why they might have different dimensionalities in multi-modal models, etc.).
 
-![End-to-end attention schematic for a single head revealing its context dependence and the unique significance K and V matrices](attention_layout3.png "Attention mechanism, end-to-end (meta learning layout)")
+<center><img src="attention_layout3.png" alt="nd-to-end attention schematic for a single head revealing its context dependence and the unique significance K and V matrices" title="Attention mechanism, end-to-end (meta learning layout)" width="800"/></center>
 
+The key here is that we can choose $q$, $k$ and $v$ inputs according to out needs. For example, in a decoder-only these are $q = k = v = x$, leading to what we call "self-attention." Of course $x$ refers to the $d_{\mathrm{model}}$-dimensional word embeddings in the initial layer and to the "information highway" (of the same dimensionality) thereafter.
+
+In an encoder-decoder layout, the $k$ and $v$ would come from the encoder, and the $q$ comes from the decoder's "information highway." This is what we call "cross-attention." The $k$ and $v$ can also come from an image embedding encoder for a multi-modal model. This is why the sequence lengths ($L_q$ vs $L_k$) can differ between these depending on the embedder's chosen dimensionality.
+
+An important point here is that PyTorch's impelmentation of the transformer layers does not allow the user to choose $d_k$ and $d_v$ (these are always set to $d_{\mathrm{model}}\ / $ num_heads).
 
 ## Attention as a generalization of a database
 
