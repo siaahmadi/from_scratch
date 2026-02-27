@@ -4,10 +4,10 @@ Transformer implemented from scratch in two ways:
 
 | Variant | Description |
 |---------|-------------|
-| [numpy_based](./numpy_based/README.md) | Pure NumPy with manually derived gradients |
-| [pytorch_based](./pytorch_based/README.md) | PyTorch primitives with autograd |
+| [numpy_based](./numpy_based/) | Pure NumPy with manually derived gradients |
+| [pytorch_based](./pytorch_based/) | PyTorch primitives with autograd |
 
-The NumPy variant implements everything from scratch — forward pass, backpropagation, and all gradient computations. Mathematical derivations for each component are linked from its [README](./numpy_based/README.md).
+The NumPy variant implements everything from scratch — forward pass, backpropagation, and all gradient computations. Mathematical derivations for each component are linked from its [README](./numpy_based/).
 
 # The Transformer Architecture
 
@@ -15,9 +15,9 @@ I've had to read [the main Transformer paper](https://doi.org/10.48550/arXiv.170
 
 ## Transformer architecture, better visualized
 
-The figures in the Transformer paper are really confusing to me. I think just because they are technically "correct" it doesn't mean they communicate the ideas well. For example, there is no figure that puts together the entire attention mechanism end-to-end in a simplified way. Here's my attempt at doing so:
+The figures in the Transformer paper are really confusing to me. I think just because they are technically "correct" it doesn't mean they communicate the ideas well. For example, there is no figure that puts together the entire attention mechanism end-to-end in a simplified way. Below are my several attempts at doing so:
 
-<center><img src="attention_layout1.png" alt="End-to-end attention schematic for a single head" title="Attention mechanism, end-to-end" width="800"/></center>
+<center><img src="./images/attention_layout1.png" alt="End-to-end attention schematic for a single head" title="Attention mechanism, end-to-end" width="800"/></center>
 
 This is the original paper's description of the transformer self-attention. Note that it's *self-attention* not *cross-attention* because the inputs are all the same (the "self" is the input giving rise to $K$ and $V$). This schematic is meant to illustrate a simplified picture and show you how the different matrix sizes match up. The boxes are sized carefully to match the matrix product dimension rules. For each matrix multiplication $C=AB$ the matrix $A_{m\times p}$ is situation to the left, matrix $B_{p\times n}$ is situated to the top and $C_{m\times n}$ is placed at the center. If you think of these boxes in 3D, we're "lifting up" $A$ and $B and requiring that their heights $p$ be the same. Of course the length $m$ and widht $n$ can vary arbitrarily.
 
@@ -40,17 +40,17 @@ Here, the cyan matrix is $A$, the purple is $B$, and the results $C$ is in green
 
 Here's the same schematic, rearranged, in case you find it easier to comprehend this way:
 
-<center><img src="attention_layout2.png" alt="End-to-end attention schematic for a single head" title="Attention mechanism, end-to-end (alternative layout)" width="600"/></center>
+<center><img src="./images/attention_layout2.png" alt="End-to-end attention schematic for a single head" title="Attention mechanism, end-to-end (alternative layout)" width="600"/></center>
 
 But if you're really used to neural networks being represented as multi-layer perceptrons, then the following might be the best representation for you. This simultaneously shows a) the whole attention mechanism end to end, b) the context-dependent nature of attention, which is reminiscient of meta-learning, and c) that the key `K` and value `V` have a special meaning in attention (hence, KV caching, why `K` and `V` can come from an encoder layer, why they might have different dimensionalities in multi-modal models, etc.).
 
-<center><img src="attention_layout3.png" alt="nd-to-end attention schematic for a single head revealing its context dependence and the unique significance K and V matrices" title="Attention mechanism, end-to-end (meta learning layout)" width="800"/></center>
+<center><img src="./images/attention_layout3.png" alt="nd-to-end attention schematic for a single head revealing its context dependence and the unique significance K and V matrices" title="Attention mechanism, end-to-end (meta learning layout)" width="800"/></center>
 
 The key here is that we can choose $q$, $k$ and $v$ inputs according to out needs. For example, in a decoder-only these are $q = k = v = x$, leading to what we call "self-attention." Of course $x$ refers to the $d_{\mathrm{model}}$-dimensional word embeddings in the initial layer and to the "information highway" (of the same dimensionality) thereafter.
 
 In an encoder-decoder layout, the $k$ and $v$ would come from the encoder, and the $q$ comes from the decoder's "information highway." This is what we call "cross-attention." The $k$ and $v$ can also come from an image embedding encoder for a multi-modal model. This is why the sequence lengths ($L_q$ vs $L_k$) can differ between these depending on the embedder's chosen dimensionality.
 
-An important point here is that PyTorch's impelmentation of the transformer layers does not allow the user to choose $d_k$ and $d_v$ (these are always set to $d_{\mathrm{model}}\ / $ num_heads).
+An important point here is that PyTorch's impelmentation of the transformer layers does not allow the user to choose $d_k$ and $d_v$ (these are always set to $d_{\mathrm{model}} \ / $ num_heads). In this package, however, the [PyTorch-based implementation](./pytorch_based/) does allow control over all of those parameters.
 
 ## Attention as a generalization of a database
 
