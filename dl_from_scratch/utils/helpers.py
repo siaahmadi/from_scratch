@@ -22,6 +22,8 @@ def gradient_check(func, x, func_output_shape=(), h=1e-5, **kw_args):
     return grad
 
 def softmax(x, axis=None, compute_grad=False, upstream_grad=None):
+    """NOTE: Currently the gradient is valid only if axis=-1!"""
+
     max_vals = np.max(x, axis=axis, keepdims=True)
     max_vals[~np.isfinite(max_vals)] = 0
 
@@ -33,6 +35,9 @@ def softmax(x, axis=None, compute_grad=False, upstream_grad=None):
 
     grad = None
     if compute_grad:
+        if axis != -1 and axis != len(x) - 1:
+            raise Exception("Currently, the gradient can be computed only when axis=-1.")
+
         if upstream_grad is None: # form jacobian
             pT = np.expand_dims(p, len(p.shape))
             p_expanded = np.expand_dims(p, -2)
@@ -44,12 +49,12 @@ def softmax(x, axis=None, compute_grad=False, upstream_grad=None):
 
     return (p, grad) if compute_grad else p
 
-def masked_softmax(x, mask, axis=None, upstream_grad=None):
+def masked_softmax(x, mask, axis=None, compute_grad=False, upstream_grad=None):
     y = x.copy()
     if mask is not None:
         mask = mask.astype(bool)
         y[mask] = -np.inf
-    return softmax(y, axis=axis, upstream_grad=upstream_grad)
+    return softmax(y, axis=axis, compute_grad=compute_grad, upstream_grad=upstream_grad)
 
 def cross_entropy_loss(logits, p):
     logits -= np.max(logits, axis=1, keepdims=True)
@@ -102,12 +107,24 @@ if __name__ == "__main__":
     print(y)
 
     G = np.ones_like(x) # or None
+    
     smx, smx_grad = softmax(x, axis=-1, compute_grad=True, upstream_grad=G)
     numeric_grad = gradient_check(softmax, x, func_output_shape=x.shape[-1:], axis=-1)
     numeric_grad = numeric_grad if G is None else np.squeeze(np.expand_dims(G, -2) @ numeric_grad)
     print(f"Gradient check pass? {np.allclose(numeric_grad, smx_grad, rtol=1e-8)}")
     print()
 
+    x = x[:min(N, D)] # make square
+    causal_mask = np.triu(np.ones(x.shape, dtype=np.bool), 1)
+    G = None # or np.ones_like(x)
+    
+    smx, smx_grad = masked_softmax(x, mask=causal_mask, axis=-1, compute_grad=True, upstream_grad=G)
+    numeric_grad = gradient_check(masked_softmax, x, func_output_shape=x.shape[-1:], mask=causal_mask, axis=-1)
+    numeric_grad = numeric_grad if G is None else np.squeeze(np.expand_dims(G, -2) @ numeric_grad)
+    print(f"Gradient check pass? {np.allclose(numeric_grad, smx_grad, rtol=1e-8)}")
+    print()
+
+# with G = None
 # p (softmax(x[:2]))
 # array([[0.22597686, 0.17461744, 0.37808727, 0.22131843],
 #        [0.07065947, 0.17331947, 0.44476298, 0.31125809]])
@@ -123,3 +140,14 @@ if __name__ == "__main__":
 #         [-0.01224666,  0.14327983, -0.07708608, -0.05394709],
 #         [-0.03142671, -0.07708608,  0.24694887, -0.13843607],
 #         [-0.02199333, -0.05394709, -0.13843607,  0.21437649]]])
+#
+# numeric_grad of x[:2]
+# array([[[ 0.17491132, -0.0394595 , -0.08543897, -0.05001284],
+#         [-0.0394595 ,  0.14412619, -0.06602063, -0.03864606],
+#         [-0.08543897, -0.06602063,  0.23513729, -0.08367768],
+#         [-0.05001284, -0.03864606, -0.08367768,  0.17233658]],
+
+#        [[ 0.06566671, -0.01224666, -0.03142671, -0.02199333],
+#         [-0.01224666,  0.14327983, -0.07708608, -0.05394709],
+#         [-0.03142671, -0.07708608,  0.24694887, -0.13843607],
+#         [-0.02199333, -0.05394709, -0.13843607,  0.21437649]],

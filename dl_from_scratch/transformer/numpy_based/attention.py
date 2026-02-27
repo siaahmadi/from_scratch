@@ -20,11 +20,25 @@ def scaled_dot_product(q, k, upstream_grad=None):
 
 def masked_attention(q, k, v, mask, upstream_grad=None):
 
-    S, grad_S = scaled_dot_product(q, k, upstream_grad=upstream_grad)
-    A, grad_A = masked_softmax(S, mask, axis=-1, upstream_grad=upstream_grad)
+    S = scaled_dot_product(q, k)
+    A = masked_softmax(S, mask, axis=-1)
     a = A @ v # (N, L_k, d_k)
 
-    grad = upstream_grad @ grad_A @ grad_S if upstream_grad is not None else grad_A @ grad_S
+    da_dA = np.moveaxis(v, -1, -2)
+    da_dv = np.moveaxis(A, -1, -2)
+
+    # this design has two problems:
+    # 1) inconsistent output formats
+    # 2) won't cache forward results
+    # TODO: best to convert to returning a function that can compute backward pass
+    _, da_dS  = masked_softmax(S, mask, axis=-1, compute_grad=True, upstream_grad=da_dA)
+    _, da_dqk = scaled_dot_product(q, k, compute_grad=True, upstream_grad=da_dS)
+
+    grad = {
+        'q': upstream_grad @ da_dqk['q'] if upstream_grad is not None else da_dqk['q'],
+        'k': upstream_grad @ da_dqk['k'] if upstream_grad is not None else da_dqk['k'],
+        'v': upstream_grad @ da_dv if upstream_grad is not None else da_dv,
+    }
 
     return a, grad
 
