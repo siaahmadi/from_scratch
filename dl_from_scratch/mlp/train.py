@@ -3,7 +3,7 @@ import copy
 
 from two_layer_nn import TwoLayerMLP
 from dl_from_scratch.utils.mnist_data import X_train, y_train, X_valid, y_valid, X_test, y_test
-from dl_from_scratch.utils.helpers import softmax, cross_entropy_gradient, loss_and_accuracy
+from dl_from_scratch.utils.helpers import softmax, cross_entropy_loss, loss_and_accuracy
 
 
 hyperparam = {
@@ -44,11 +44,10 @@ for epoch in range(1, 1 + hyperparam['n_epochs']):
         y_batch = y_train[batch * hyperparam['batch_size'] : (1 + batch) * hyperparam['batch_size']]
 
         logits = model(X_batch)
-        q = softmax(logits)
-        gradient = cross_entropy_gradient(q, y_batch)
-        model.backward(gradient)
+        loss, grad_fn = cross_entropy_loss(logits, y_batch, return_grad=True)
+        model.backward(grad_fn())
         model.step()
-
+        
         if batch % 100 == 0:
             loss_train, accuracy_train = loss_and_accuracy(model, X_train, y_train)
             loss_valid, accuracy_valid = loss_and_accuracy(model, X_valid, y_valid)
