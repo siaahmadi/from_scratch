@@ -45,10 +45,10 @@ def gradient_check(func, x, func_output_shape=(), h=1e-5, **kw_args):
             fxh_l = func(x, **kw_args) # f(x - h)
             x[ix] = prev_x
 
-            ix_func_output = ix[:len(func_output_shape)]
-            grad[ix] = ((fxh_r - fxh_l) / (2 * h))[ix_func_output]
+            batch_ix = ix[0]
+            grad[ix] = ((fxh_r - fxh_l) / (2 * h))[batch_ix]
 
-            it.iternext() # step to next dimension
+            it.iternext()
     
     return grad
 
