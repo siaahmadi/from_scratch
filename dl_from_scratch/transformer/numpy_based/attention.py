@@ -53,7 +53,7 @@ def masked_attention(Q, K, V, mask, return_grad=False):
     return (a, grad_fn) if return_grad else a
 
 class MultiHeadAttention:
-    def __init__(self, d_model, num_heads, kdim=None, vdim=None, seed=None):
+    def __init__(self, d_model, num_heads, kdim=None, vdim=None, d_v=None, seed=None):
         """Expects a batch of shape (N, L, d_model) where
             N: batch size
             L: sequence length
@@ -66,6 +66,7 @@ class MultiHeadAttention:
         self.d_model   = d_model
         self.num_heads = num_heads
         d_k = d_model // num_heads
+        d_v = d_k if d_v is None else d_v
 
         if kdim is None:
             kdim = d_model
@@ -75,8 +76,8 @@ class MultiHeadAttention:
         
         self.Wq = xavier_uniform((num_heads, d_model , d_k), seed=seed)
         self.Wk = xavier_uniform((num_heads, kdim    , d_k), seed=seed)
-        self.Wv = xavier_uniform((num_heads, vdim    , d_k), seed=seed)
-        self.Wo = xavier_uniform((d_model  , d_model      ), seed=seed)
+        self.Wv = xavier_uniform((num_heads, vdim    , d_v), seed=seed)
+        self.Wo = xavier_uniform((h*d_v    , d_model      ), seed=seed)
     
     def forward(self, q, k, v, mask=None, return_grad=False):
         """q, k, and v all of shape (N, L, d_model)"""
@@ -107,9 +108,11 @@ class MultiHeadAttention:
 
             local_grad['Wo'] = np.moveaxis(concat_heads, -1, -2)
 
-            local_grad['concat_heads'] = upstream_grad @ np.moveaxis(self.Wo, -1, -2)
-            local_grad['a'] = np.stack(np.split(local_grad['concat_heads'], num_heads, axis=-1))
-            attn_grad = grad_attention(local_grad['a'])
+            local_grad['concat_heads'] = np.moveaxis(self.Wo, -1, -2) # (d_model, d_v * h)
+            local_grad['a'] = np.stack(np.split(local_grad['concat_heads'], num_heads, axis=-1)) # (h, d_model, d_v)
+            dL_da = np.dot(upstream_grad, local_grad['a']) # (N, L_q, h, d_v) = (N, L_q, d_model) . (h, d_model, d_v)
+            dL_da = np.moveaxis(dL_da, -2, 0) # (h, N, L_q, d_v)
+            attn_grad = grad_attention(dL_da)
             
             return {
                 'q' : np.sum(attn_grad['Q'] @ local_grad['Q_q'], axis=0),
@@ -173,10 +176,10 @@ class MultiHeadSelfAttention:
 if __name__ == "__main__":
     d_model = 10
     h = 5
-    d_v = 32
+    d_v = 17
 
     L = 2
-    N = 1
+    N = 11
 
     kdim, vdim = 96, 3
 
@@ -196,8 +199,9 @@ if __name__ == "__main__":
     k = rng.standard_normal((N, L*3, kdim))
     v = rng.standard_normal((N, L*3, vdim))
 
-    mhca = MultiHeadAttention(d_model, h, kdim=kdim, vdim=vdim, seed=random_seed)
+    mhca = MultiHeadAttention(d_model, h, kdim=kdim, vdim=vdim, d_v=d_v, seed=random_seed)
     attention, attn_grad_fn = mhca(q, k, v, return_grad=True)
+    gradients = attn_grad_fn(np.ones((N, L, d_model)))
     
     attention
 
@@ -208,7 +212,7 @@ if __name__ == "__main__":
     numerical_gradient_q = gradient_check(check_q, q, func_output_shape=())
     numerical_gradient_k = gradient_check(check_k, k, func_output_shape=())
     numerical_gradient_v = gradient_check(check_v, v, func_output_shape=())
-    gradients = attn_grad_fn(np.ones((N, L, d_model)))
+    
     print(f"Gradient of q: pass? {np.allclose(gradients['q'], numerical_gradient_q, rtol=1e-8)}")
     print(f"Gradient of k: pass? {np.allclose(gradients['k'], numerical_gradient_k, rtol=1e-8)}")
     print(f"Gradient of v: pass? {np.allclose(gradients['v'], numerical_gradient_v, rtol=1e-8)}")
