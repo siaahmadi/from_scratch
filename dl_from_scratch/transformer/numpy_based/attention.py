@@ -1,20 +1,21 @@
 import numpy as np
-from dl_from_scratch.utils.helpers import xavier_uniform, masked_softmax
+from dl_from_scratch.utils.helpers import xavier_uniform, masked_softmax, gradient_check
 
 
 def scaled_dot_product(Q, K, return_grad=False):
+    # Q: (h, N, L_q, d_k), K: (h, N, L_k, d_k)
 
     d_k = Q.shape[-1]
     s = np.sqrt(1./d_k)
 
-    K_T = np.moveaxis(K, -1, -2)
+    K_T = np.moveaxis(K, -1, -2) # h, N, d_k, L_k
 
-    S = (Q @ K_T) * s # (N, L_q, L_k)
+    S = (Q @ K_T) * s # (h, N, L_q, L_k)
 
     def grad(upstream_grad):
         return {
-            'Q': upstream_grad @ K * s if upstream_grad is not None else K * s,
-            'K': np.moveaxis(upstream_grad, -1, -2) @ Q * s if upstream_grad is not None else Q * s,
+            'Q': upstream_grad @ K * s, # (h, N, L_q, d_k) = (h, N, L_q, L_k) @ (h, N, L_k, d_k)
+            'K': np.moveaxis(upstream_grad, -1, -2) @ Q * s,
         }
 
     return (S, grad) if return_grad else S
@@ -28,7 +29,7 @@ def masked_attention(Q, K, V, mask, return_grad=False):
 
     S, grad_S = scaled_dot_product(Q, K, return_grad=True)
     A, grad_A = masked_softmax(S, mask, axis=-1, return_grad=True)
-    a = A @ V # (N, L_k, d_k)
+    a = A @ V # (h, N, L_k, d_k)
 
     def grad_fn(upstream_grad):
 
@@ -42,9 +43,9 @@ def masked_attention(Q, K, V, mask, return_grad=False):
         dLoss_dqk = grad_S(grad_A(dLoss_dA))
 
         dLoss_dInputs = {
-            'Q': dLoss_dqk['Q'],
-            'K': dLoss_dqk['K'],
-            'V': dLoss_dV,
+            'Q': dLoss_dqk['Q'], # (h, N, L_q, d_k)
+            'K': dLoss_dqk['K'], # (h, N, L_k, d_k)
+            'V': dLoss_dV,       # (h, N, L_k, d_k)
         }
 
         return dLoss_dInputs
@@ -97,29 +98,28 @@ class MultiHeadAttention:
             num_heads = a.shape[0]
 
             local_grad = {}
-            local_grad['Q_q']  = np.moveaxis(self.Wq, -1, -2)
-            local_grad['Q_Wq'] = np.moveaxis(q, -1, -2)
-            local_grad['K_k']  = np.moveaxis(self.Wk, -1, -2)
-            local_grad['K_Wk'] = np.moveaxis(k, -1, -2)
-            local_grad['V_v']  = np.moveaxis(self.Wv, -1, -2)
-            local_grad['V_Wv'] = np.moveaxis(v, -1, -2)
+            local_grad['Q_q']  = np.moveaxis(self.Wq, -1, -2)[:, np.newaxis, :, :]
+            local_grad['Q_Wq'] = np.moveaxis(q, -1, -2)[np.newaxis]
+            local_grad['K_k']  = np.moveaxis(self.Wk, -1, -2)[:, np.newaxis, :, :]
+            local_grad['K_Wk'] = np.moveaxis(k, -1, -2)[np.newaxis]
+            local_grad['V_v']  = np.moveaxis(self.Wv, -1, -2)[:, np.newaxis, :, :]
+            local_grad['V_Wv'] = np.moveaxis(v, -1, -2)[np.newaxis]
 
-            local_grad['Wo'] = concat_heads
+            local_grad['Wo'] = np.moveaxis(concat_heads, -1, -2)
 
-            local_grad['concat_heads'] = upstream_grad @ self.Wo
+            local_grad['concat_heads'] = upstream_grad @ np.moveaxis(self.Wo, -1, -2)
             local_grad['a'] = np.stack(np.split(local_grad['concat_heads'], num_heads, axis=-1))
             attn_grad = grad_attention(local_grad['a'])
             
             return {
-                'q' : np.sum(attn_grad['Q'], axis=1) @ local_grad['Q_q'],
-                'k' : np.sum(attn_grad['K'], axis=1) @ local_grad['K_k'],
-                'v' : np.sum(attn_grad['V'], axis=1) @ local_grad['V_v'],
-                'Wq': np.sum(local_grad['Q_Wq'], axis=0) @ np.sum(attn_grad['Q'], axis=1),
-                'Wk': np.sum(local_grad['K_Wk'], axis=0) @ np.sum(attn_grad['K'], axis=1),
-                'Wv': np.sum(local_grad['V_Wv'], axis=0) @ np.sum(attn_grad['V'], axis=1),
-                'Wo': np.sum(np.moveaxis(upstream_grad, -1, -2) @ local_grad['Wo'], axis=0), # divide by batch here?
+                'q' : np.sum(attn_grad['Q'] @ local_grad['Q_q'], axis=0),
+                'k' : np.sum(attn_grad['K'] @ local_grad['K_k'], axis=0),
+                'v' : np.sum(attn_grad['V'] @ local_grad['V_v'], axis=0),
+                'Wq': np.sum(local_grad['Q_Wq'] @ attn_grad['Q'], axis=1),
+                'Wk': np.sum(local_grad['K_Wk'] @ attn_grad['K'], axis=1),
+                'Wv': np.sum(local_grad['V_Wv'] @ attn_grad['V'], axis=1),
+                'Wo': np.sum(local_grad['Wo'] @ upstream_grad, axis=0),
             }
-
         
         return (mha, grad) if return_grad else mha
 
@@ -171,14 +171,14 @@ class MultiHeadSelfAttention:
 
 
 if __name__ == "__main__":
-    d_model = 512
-    h = 8
+    d_model = 10
+    h = 5
     d_v = 32
 
-    L = 10
-    N = 16
+    L = 2
+    N = 1
 
-    kdim, vdim = 96, 112
+    kdim, vdim = 96, 3
 
     random_seed = 0
 
@@ -193,9 +193,26 @@ if __name__ == "__main__":
     ###
 
     q = rng.standard_normal((N, L, d_model))
-    k = rng.standard_normal((N, L*2, kdim))
-    v = rng.standard_normal((N, L*2, vdim))
+    k = rng.standard_normal((N, L*3, kdim))
+    v = rng.standard_normal((N, L*3, vdim))
 
     mhca = MultiHeadAttention(d_model, h, kdim=kdim, vdim=vdim, seed=random_seed)
     attention, attn_grad_fn = mhca(q, k, v, return_grad=True)
+    
     attention
+
+    check_q = lambda q: np.sum(mhca(q, k, v, return_grad=False), axis=(-1, -2))
+    check_k = lambda k: np.sum(mhca(q, k, v, return_grad=False), axis=(-1, -2))
+    check_v = lambda v: np.sum(mhca(q, k, v, return_grad=False), axis=(-1, -2))
+
+    numerical_gradient_q = gradient_check(check_q, q, func_output_shape=())
+    numerical_gradient_k = gradient_check(check_k, k, func_output_shape=())
+    numerical_gradient_v = gradient_check(check_v, v, func_output_shape=())
+    gradients = attn_grad_fn(np.ones((N, L, d_model)))
+    print(f"Gradient of q: pass? {np.allclose(gradients['q'], numerical_gradient_q, rtol=1e-8)}")
+    print(f"Gradient of k: pass? {np.allclose(gradients['k'], numerical_gradient_k, rtol=1e-8)}")
+    print(f"Gradient of v: pass? {np.allclose(gradients['v'], numerical_gradient_v, rtol=1e-8)}")
+    print()
+
+    # check_v = lambda v: mhca(q, k, v, return_grad=False)
+    # numerical_gradient_v = gradient_check(check_v, v, func_output_shape=(L, d_model))
