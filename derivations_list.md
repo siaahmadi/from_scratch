@@ -7,4 +7,4 @@ These PDF files detail every step of deriving the deep learning tools from the b
 |--------|-------------|
 | The softmax function and its derivative | [PDF](./dl_from_scratch/utils/softmax_gradient.pdf) |
 | Multi-head attention and its derivatives | [PDF](./dl_from_scratch/transformer/multiheaded_attention.pdf) |
-| Two-layer neural network (Multilayer perceptron) | [utils](./dl_from_scratch/mlp/derivations.pdf) |
+| Two-layer neural network (Multilayer perceptron) | [PDF](./dl_from_scratch/mlp/derivations.pdf) |
