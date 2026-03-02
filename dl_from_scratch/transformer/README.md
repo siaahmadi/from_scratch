@@ -34,7 +34,7 @@ Nvidia has a really intuitive illustration of this to demonstrate how their tens
 </div>
 </center>
 
-(Image displayed directly from the source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tensorcore/nvidia-tensor-cores-og-social-1200x630-r1.jpg)
+(Image displayed directly from the source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tensorcore/nvidia-tensor-cores-og-social-1200x630-r1.jpg; if viewing on Github, chances are this is not cropping properly so please just focus on the illustration on the left)
 
 Here, the cyan matrix is $A$, the purple is $B$, and the results $C$ is in green. The gray 3D strucutre in the middle is the result of the multplications before the sumation (recall $C_{ij}=\sum_kA_{ik}B_{kj}$, so each vertical column of the gray structure is indexed by $k$ and comes from the product of the corresponding row $i$ in $A$ and column $j$ in $B$). My schematic is this picture viewed from above, and with the cyan and purple matrices laid flat.
 
@@ -50,13 +50,13 @@ The key here is that we can choose $q$, $k$ and $v$ inputs according to out need
 
 In an encoder-decoder layout, the $k$ and $v$ would come from the encoder, and the $q$ comes from the decoder's "information highway." This is what we call "cross-attention." The $k$ and $v$ can also come from an image embedding encoder for a multi-modal model. This is why the sequence lengths ($L_q$ vs $L_k$) can differ between these depending on the embedder's chosen dimensionality.
 
-An important point here is that PyTorch's impelmentation of the transformer layers does not allow the user to choose $d_k$ and $d_v$ (these are always set to $d_{\mathrm{model}} \ / $ num_heads). In this package, however, the [PyTorch-based implementation](./pytorch_based/) does allow control over all of those parameters.
+An important point here is that PyTorch's impelmentation of the transformer layers does not allow the user to choose $d_k$ and $d_v$ (these are always set to $d_{\mathrm{model}}$ / num_heads). In this package, however, this code does allow control over all of those parameters.
 
 ## Attention as a generalization of a database
 
 The core of the transformer is the attention mechanism (forget about the bells and whistels like "multi-head" and the "output" and the "dense layer" and "layer norm" etc etc; even the "in-projection" steps should be ignored for now). At the most basic level the transformer is powerful because it does a context-dependent computation (unlike, say, a [multi-layer perceptron](../mlp/)).
 
-Below I'm comparing the attention mechanism to a Python dictionary. I use the terms "dictioanry" and "database" interchangeably.
+Below I'm comparing the attention mechanism to a Python dictionary. I use the terms "dictionary" and "database" interchangeably.
 
 In Python, we can do this:
 
@@ -70,7 +70,7 @@ print(db[query]) # error: key not in dictionary
 
 In essence, here's what's happening under the hood. `db` contains a set of `key:value` pairs. When we call `db[query]`, `query` is "compared against every `key` in `db`" (in quotes because this is not the algorithm that actually runs under the hood, but it _can_ be thought of in these terms). If `query` matches any key (`if exists`) then the `value` associated with the matching `key` is returned. Otherwise, this means that the `query` does not exists as a `key` in `db` and `error` is raised.
 
-What we're *really* interested in in a database lookup is the *values* we get--the query and key are simply a means to that end. In the transformer attention mechanism, we are simply looking to extract a weighted average of all of our (context-dependent) values `V`.
+What we're *ultimately* interested in in a database lookup is the *values* we get--the query and key are simply a means to that end. In the transformer attention mechanism, we are simply looking to extract a weighted average of all of our (context-dependent) values `V`.
 
 The transformer attention generalizes this "hard" lookup with a "soft" lookup. The `query` is given as `Q`. The "dictionary" always contains some set of keys `K` (these may be useless, as in an untrained network, or useful, as in a well-trained network). When we `Q @ K.T` in the scaled dot product, we are doing the "compare against every key" step: the matrix multiply simultaneously performs a bunch of dot products. And what is a dot product geometrically? A *similarity metric*!
 
